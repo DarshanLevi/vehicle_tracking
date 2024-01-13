@@ -7,35 +7,22 @@ const getIntervalData = async (req, res) => {
     const { error, value } = intervalDataSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { startDate, endDate, vehicleId } = value;
+    const { id } = value;
 
-    // Validate date order
-    const validStartDate = new Date(startDate);
-    const validEndDate = new Date(endDate);
-    if (validStartDate > validEndDate) return res.status(400).json({ error: 'startDate cannot be greater than endDate' });
-
-    // Fetch events within the specified interval and for the given vehicleId
+    // Fetch events for the given ID
     const events = await Event.find({
-      vehicleId,
-      timestamp: { $gte: validStartDate, $lte: validEndDate },
+      id,
     }).sort({ timestamp: 1 });
 
-    // Check if there are events before startDate
-    let firstIntervalEvent = 'no_data';
-    if (events.length > 0 && events[0].timestamp < validStartDate) firstIntervalEvent = events[0].event;
+    // Check if there are any events
+    if (events.length === 0) return res.status(404).json({ error: 'No events found for the specified ID' });
 
-    // Transform events into intervals
-    const intervals = events.reduce((result, event) => {
-      const eventTime = event.timestamp.toISOString();
-      const fromTimestamp = new Date(eventTime).getTime();
-      const toTimestamp = new Date(endDate).getTime();
-
-      if (eventTime <= endDate && event.event !== result[result.length - 1].event) {
-        result.push({ event: event.event, from: fromTimestamp, to: toTimestamp });
-      }
-
-      return result;
-    }, [{ event: firstIntervalEvent, from: new Date(startDate).getTime(), to: new Date(endDate).getTime() }]);
+    // Transform events into intervals with from, to, and event
+    const intervals = events.map(event => ({
+      from: event.timestamp.getTime(),
+      to: event.timestamp.getTime(), // Assuming 'to' should be the same as 'from' for each event
+      event: event.event,
+    }));
 
     res.json(intervals);
   } catch (error) {

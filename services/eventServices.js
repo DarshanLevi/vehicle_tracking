@@ -1,12 +1,10 @@
 const Event = require('../models/eventModels');
 
 class EventService {
-  static getEventsByInterval = async (vehicleId, startDate, endDate, event) => {
+  static getEventsByInterval = async (id) => {
     try {
       const events = await Event.find({
-        vehicleId,
-        timestamp: { $gte: new Date(startDate), $lte: new Date(endDate) },
-        event
+       id,
       }).sort({ timestamp: 1 });
 
       return events;
@@ -14,7 +12,8 @@ class EventService {
       console.error('Error fetching events:', error);
       throw new Error('Error fetching events');
     }
-  };
+  }
+
 
   static createEvent = async (timestamp, vehicleId, event) => {
     try {
